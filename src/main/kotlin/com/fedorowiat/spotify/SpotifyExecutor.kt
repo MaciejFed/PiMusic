@@ -1,3 +1,9 @@
 package com.fedorowiat.spotify
 
-class SpotifyExecutor()
+import com.fedorowiat.Task
+
+class SpotifyExecutor() {
+    fun execute(task: Task) {
+
+    }
+}

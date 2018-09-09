@@ -5,6 +5,7 @@ import org.junit.Test
 import kotlin.test.assertTrue
 
 class TaskTest {
+
     @Test fun shouldCreatePlaylistTask() {
         val id = "fakeId"
         val playlistTask = PlaylistTask(id)
