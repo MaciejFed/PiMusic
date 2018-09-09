@@ -1,14 +1,15 @@
 package com.fedorowiat.spotify
 
+import com.fedorowiat.playlist.Playlist
 import com.fedorowiat.playlist.PlaylistTask
 import org.junit.Test
 
 class SpotifyExecutorTest {
+    private val spotifyExecutor = SpotifyExecutor(SpotifyClient())
 
     @Test fun execute() {
-        val spotifyExecutor = SpotifyExecutor()
         kotlin.test.assertTrue {
-            spotifyExecutor.execute(PlaylistTask("null")) is Unit
+            spotifyExecutor.execute(PlaylistTask(Playlist.WAKE_UP_SONGS)) is Unit
         }
     }
 }
