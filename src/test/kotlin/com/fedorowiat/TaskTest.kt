@@ -1,7 +1,8 @@
 package com.fedorowiat
 
 import com.fedorowiat.playlist.Playlist
-import com.fedorowiat.playlist.PlaylistTask
+import com.fedorowiat.task.PlaylistTask
+import com.fedorowiat.task.Task
 import org.junit.Test
 import kotlin.test.assertTrue
 

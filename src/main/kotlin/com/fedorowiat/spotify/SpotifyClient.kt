@@ -3,13 +3,16 @@ package com.fedorowiat.spotify
 import com.fedorowiat.playlist.Playlist
 import com.wrapper.spotify.SpotifyApi
 import com.wrapper.spotify.SpotifyHttpManager
+import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.stereotype.Component
 
 private const val clientId = "eb1b3708670741cbbb51ffdb89fe53df"
 private const val clientSecret = "f85f6e6c82a64a0dad7c596d5cc581db"
-private const val accessToken = "BQCmW1Zr9ShQAcs3F10ynPYy8Rk2z8Rhf8ltnFgLqKRUGDmqzUsi5PU85xLmmGTUJzFrZGzwQH_w4uNZQ4sjiPfjPTwvth5CqeYnd4B8PK2AUDMF-y1Gt1qSreuw_T_eFIh7Zr7Ulh0E3mc_-1I0wUU8FpjFDnAhJlA08SPErsRAvDDouQyFjEfXK6f9Qpk_7FuNa0W477f9sU5o9ghoJBWQ6aEQef4PN_AGIHOrgtvlGmp3fmI2rG9JkrU77QCC8MFksvEGdSBUecDyQ63uYugT91Y"
-private const val refreshToken = "AQBQxCo1HP8GZf972d_qP_cx23n2tbwpvul_oMB4pjtu2ukF8EHrrGxx_DHmYPyE-EtjJvDVdgs3CpvO5FDfoh2qFLwTWI1E__IUox3k9CPOLYZVgYoK0CoQCjjsHzSV0Cg2Dg"
+private var accessToken = "BQBjn24-Bu523mgg7dwj-4eYZxre19J5cABcJpGbWSGQ-k-OW33sFJWkl3D72fDa10bQQqGuOhcf2vKZGrj8RNmSLUy5i9rIOLZWJ2ezQvOVBp77JE8PUCk6WyJh6TiU-57O45z_3hN4eSAbfUJ6e41HhJHk6SdTl7FqBOYPt30ycwiWmsYa1pjWpQ9dRbial7qQn8jkKt4Ys5Af-iDF1dwg6urtteCcS9VCTC40DcpBveP05Dks84ISLsiSTEZs5zbN07YvbrdH_exPGd5TWR2fRdA"
+private var refreshToken = "AQAyeCRBjedVszwhRUBjAAh1z0w_S5Oru0_S3r8Vj0QuRzBnTEFw53GZet9kiHHrbhVdCvLR1nm7NXtvFHzyYmeBvIzWx8vMnJDOnMTjSeFAAOGr2Yoj8EmKLKkmLFvCKHYBCQ"
 private val redirectUri = SpotifyHttpManager.makeUri("http://localhost:8080/callback")
 
+@Component
 class SpotifyClient {
     private val spotifyApi = SpotifyApi
             .Builder()
@@ -19,8 +22,18 @@ class SpotifyClient {
             .setAccessToken(accessToken).setRefreshToken(refreshToken)
             .build()
 
+    @Scheduled(fixedDelay = 50000)
+    fun refreshTokenLoop() {
+        val credentials = spotifyApi.authorizationCodeRefresh(clientId, clientSecret, refreshToken).build().execute()
+        accessToken = credentials.accessToken
+    }
+
     fun startPlaylist(playlist: Playlist, random: Boolean = false) {
         spotifyApi.toggleShuffleForUsersPlayback(random)
         spotifyApi.startResumeUsersPlayback(playlist.playlistContext)
+    }
+
+    fun stopPlaying() {
+        spotifyApi.pause()
     }
 }

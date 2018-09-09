@@ -12,3 +12,10 @@ fun SpotifyApi.startResumeUsersPlayback(playlistContext: String) {
             .build()
             .execute()
 }
+
+fun SpotifyApi.pause() {
+    pauseUsersPlayback()
+            .device_id(raspberryId)
+            .build()
+            .execute()
+}
