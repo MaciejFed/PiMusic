@@ -1,8 +1,16 @@
 package com.fedorowiat.machine
 
-enum class Machine(val ip: String) {
-    AIR("192.168.0.2"),
-    PRO("192.168.0.4")
-}
+import org.springframework.data.repository.CrudRepository
+import javax.persistence.*
 
-class MachineRepository
+
+@Entity
+@Table(name = "machine")
+data class Machine(
+        @Id @GeneratedValue(strategy = GenerationType.AUTO)
+        val id: Long = 0L,
+        val name: String = "",
+        val ip: String = ""
+)
+
+interface MachineRepository: CrudRepository<Machine, Long>

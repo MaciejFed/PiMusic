@@ -1,6 +1,9 @@
 package com.fedorowiat.scheduler
 
+import com.fedorowiat.configuration.ConfigurationService
+import com.fedorowiat.configuration.timeNow
 import com.fedorowiat.machine.Machine
+import com.fedorowiat.machine.MachineRepository
 import com.fedorowiat.playlist.Playlist
 import com.fedorowiat.task.PlaylistTask
 import com.fedorowiat.task.SaveSleepTimeTask
@@ -9,12 +12,13 @@ import com.fedorowiat.task.TaskExecutor
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.net.InetAddress
-import java.text.SimpleDateFormat
-import java.time.LocalDateTime
-import java.util.*
 
 @Component
-class TaskScheduler(private val taskExecutor: TaskExecutor) {
+class TaskScheduler(
+        private val taskExecutor: TaskExecutor,
+        private val configurationService: ConfigurationService,
+        private val machineRepository: MachineRepository
+) {
 
     private var hostFailedPingMap: MutableMap<Machine, Int> = machinesToPingMap()
     private var hostSuccessPingMap: MutableMap<Machine, Int> = machinesToPingMap()
@@ -23,23 +27,23 @@ class TaskScheduler(private val taskExecutor: TaskExecutor) {
 
     @Scheduled(fixedDelay = 100)
     fun scheduleSleepMusic() {
-        if ((LocalDateTime.now().hour > 22 || LocalDateTime.now().hour < 4) && !nightTime) {
-            Machine.values().forEach {
+        if ((timeNow().hour > afterHour() || timeNow().hour < beforeHour()) && !nightTime) {
+            machineRepository.findAll().forEach {
                 hostFailedPingMap[it] = if(isReachable(it)) 0 else hostFailedPingMap[it]!! + 1
             }
             if (hostFailedPingMap.keys.all { hostFailedPingMap[it]!! > 5 }) {
                 nightTime = true
                 hostFailedPingMap = machinesToPingMap()
                 taskExecutor.execute(PlaylistTask(Playlist.SLEEP_SONGS))
-                finalSleepTime = SimpleDateFormat("HH:mm").format(Date())
+                finalSleepTime = ("${timeNow().hour}:${timeNow().minute}")
             }
         }
     }
 
     @Scheduled(initialDelay = 50, fixedDelay = 100)
     fun interruptSleepMusic() {
-        if ((LocalDateTime.now().hour > 22 || LocalDateTime.now().hour < 4) && nightTime) {
-            Machine.values().forEach {
+        if ((timeNow().hour > afterHour() || timeNow().hour < beforeHour()) && nightTime) {
+            machineRepository.findAll().forEach {
                 hostSuccessPingMap[it] = if(isReachable(it)) hostSuccessPingMap[it]!! + 1 else 0
             }
             if (hostSuccessPingMap.keys.any { hostSuccessPingMap[it]!! > 5 }) {
@@ -50,12 +54,14 @@ class TaskScheduler(private val taskExecutor: TaskExecutor) {
         }
     }
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 30000)
     fun saveSleepTime() {
         taskExecutor.execute(SaveSleepTimeTask(finalSleepTime))
     }
 
-    private fun machinesToPingMap() = Machine.values().map { it to 0 }.toMap().toMutableMap()
+    private fun machinesToPingMap() = machineRepository.findAll().map { it to 0 }.toMap().toMutableMap()
+    private fun afterHour() = configurationService.getConfiguration().afterHour
+    private fun beforeHour() = configurationService.getConfiguration().beforeHour
     private fun isReachable(machine: Machine): Boolean {
         return try {
             InetAddress.getByName(machine.ip).isReachable(500)
