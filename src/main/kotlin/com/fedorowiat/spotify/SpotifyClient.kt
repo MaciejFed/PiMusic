@@ -14,26 +14,44 @@ private val redirectUri = SpotifyHttpManager.makeUri("http://localhost:8080/call
 
 @Component
 class SpotifyClient {
+
+    private val spotifyApiContainer = SpotifyApiContainer()
+
+    @Scheduled(fixedDelay = 50000)
+    fun refreshTokenLoop() {
+        spotifyApiContainer.performAction { spotifyApi ->
+            run {
+                val credentials = spotifyApi.authorizationCodeRefresh(clientId, clientSecret, refreshToken)
+                                         .build()
+                                         .execute()
+                spotifyApi.accessToken = credentials.accessToken
+            }
+        }
+
+    }
+
+    fun startPlaylist(playlist: Playlist, random: Boolean = false) {
+        spotifyApiContainer.performAction { it.toggleShuffleForUsersPlayback(random) }
+        spotifyApiContainer.performAction { it.startResumeUsersPlayback(playlist.playlistContext) }
+    }
+
+    fun stopPlaying() {
+        spotifyApiContainer.performAction { it.pause() }
+    }
+}
+
+class SpotifyApiContainer {
     private val spotifyApi = SpotifyApi
             .Builder()
             .setClientId(clientId)
             .setClientSecret(clientSecret)
             .setRedirectUri(redirectUri)
-            .setAccessToken(accessToken).setRefreshToken(refreshToken)
+            .setAccessToken(accessToken)
+            .setRefreshToken(refreshToken)
             .build()
 
-    @Scheduled(fixedDelay = 50000)
-    fun refreshTokenLoop() {
-        val credentials = spotifyApi.authorizationCodeRefresh(clientId, clientSecret, refreshToken).build().execute()
-        accessToken = credentials.accessToken
-    }
-
-    fun startPlaylist(playlist: Playlist, random: Boolean = false) {
-        spotifyApi.toggleShuffleForUsersPlayback(random)
-        spotifyApi.startResumeUsersPlayback(playlist.playlistContext)
-    }
-
-    fun stopPlaying() {
-        spotifyApi.pause()
+    @Synchronized
+    fun performAction(spotifyAction: (spotify: SpotifyApi) -> Unit) {
+        spotifyAction(spotifyApi)
     }
 }

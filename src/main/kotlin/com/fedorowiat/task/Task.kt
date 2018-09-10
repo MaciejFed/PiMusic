@@ -5,4 +5,5 @@ import com.fedorowiat.playlist.Playlist
 interface Task
 
 data class PlaylistTask(val playlist: Playlist): Task
+data class SaveSleepTimeTask(val sleepTime: String): Task
 class StopTask: Task

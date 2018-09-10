@@ -1,21 +1,20 @@
 package com.fedorowiat.scheduler
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fedorowiat.machine.Machine
 import com.fedorowiat.playlist.Playlist
-import com.fedorowiat.spotify.SpotifyExecutor
 import com.fedorowiat.task.PlaylistTask
+import com.fedorowiat.task.SaveSleepTimeTask
 import com.fedorowiat.task.StopTask
+import com.fedorowiat.task.TaskExecutor
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.io.File
 import java.net.InetAddress
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.util.*
 
 @Component
-class TaskScheduler(private val spotifyExecutor: SpotifyExecutor) {
+class TaskScheduler(private val taskExecutor: TaskExecutor) {
 
     private var hostFailedPingMap: MutableMap<Machine, Int> = machinesToPingMap()
     private var hostSuccessPingMap: MutableMap<Machine, Int> = machinesToPingMap()
@@ -31,7 +30,7 @@ class TaskScheduler(private val spotifyExecutor: SpotifyExecutor) {
             if (hostFailedPingMap.keys.all { hostFailedPingMap[it]!! > 5 }) {
                 nightTime = true
                 hostFailedPingMap = machinesToPingMap()
-                spotifyExecutor.execute(PlaylistTask(Playlist.SLEEP_SONGS))
+                taskExecutor.execute(PlaylistTask(Playlist.SLEEP_SONGS))
                 finalSleepTime = SimpleDateFormat("HH:mm").format(Date())
             }
         }
@@ -46,17 +45,14 @@ class TaskScheduler(private val spotifyExecutor: SpotifyExecutor) {
             if (hostSuccessPingMap.keys.any { hostSuccessPingMap[it]!! > 5 }) {
                 nightTime = false
                 hostSuccessPingMap = machinesToPingMap()
-                spotifyExecutor.execute(StopTask())
+                taskExecutor.execute(StopTask())
             }
         }
     }
 
     @Scheduled(fixedDelay = 1000)
     fun saveSleepTime() {
-        val now = LocalDateTime.now()
-        if (now.hour in 4..5) {
-            ObjectMapper().writeValue(File("/tmp/sleep-time-${now.year}-${now.month}-${now.dayOfMonth-1}"), finalSleepTime)
-        }
+        taskExecutor.execute(SaveSleepTimeTask(finalSleepTime))
     }
 
     private fun machinesToPingMap() = Machine.values().map { it to 0 }.toMap().toMutableMap()
