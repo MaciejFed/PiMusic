@@ -9,6 +9,7 @@ import com.fedorowiat.task.*
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.net.InetAddress
+import java.util.*
 
 @Component
 class TaskScheduler(
@@ -20,7 +21,7 @@ class TaskScheduler(
     private var hostFailedPingMap: MutableMap<Machine, Int> = machinesToPingMap()
     private var hostSuccessPingMap: MutableMap<Machine, Int> = machinesToPingMap()
     private var nightTime = false
-    private var finalSleepTime = "00:00"
+    private var finalSleepTime = Date()
 
     @Scheduled(fixedDelay = 2000)
     fun scheduleSleepMusic() {
@@ -32,7 +33,7 @@ class TaskScheduler(
                 nightTime = true
                 hostFailedPingMap = machinesToPingMap()
                 taskExecutor.execute(PlaylistTask(Playlist.SLEEP_SONGS))
-                finalSleepTime = hourMinuteNowString()
+                finalSleepTime = Date()
             }
         }
     }
@@ -59,14 +60,13 @@ class TaskScheduler(
     @Scheduled(fixedDelay = 60000)
     fun saveWakeTime() {
         if (timeNow().hour in 5..11) {
-            taskExecutor.execute(SaveWakeTimeTask(hourMinuteNowString()))
+            taskExecutor.execute(SaveWakeTimeTask(Date()))
         }
     }
 
     private fun machinesToPingMap() = machineRepository.findAll().map { it to 0 }.toMap().toMutableMap()
     private fun afterHour() = configurationService.getConfiguration().afterHour
     private fun beforeHour() = configurationService.getConfiguration().beforeHour
-    private fun hourMinuteNowString() = "${timeNow().hour}:${timeNow().minute}"
     private fun isReachable(machine: Machine): Boolean {
         return try {
             InetAddress.getByName(machine.ip).isReachable(500)

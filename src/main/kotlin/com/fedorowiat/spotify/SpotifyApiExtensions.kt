@@ -17,7 +17,7 @@ fun SpotifyApi.startResumeUsersPlayback(playlistContext: String) {
             .context_uri(playlistContext)
             .build()
             .execute()
-    cancelExecutor.shutdownNow().forEach { println("Closing pause() task...") }
+    cancelExecutor.shutdownNow()
     cancelExecutor = Executors.newSingleThreadExecutor()
     cancelExecutor.execute(FutureTask(Callable { {
         sleep(TimeUnit.MINUTES.toMillis(45))
