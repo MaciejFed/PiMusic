@@ -3,9 +3,9 @@ package com.fedorowiat.configuration
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 import org.springframework.stereotype.Service
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.util.*
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.persistence.*
 
 
@@ -42,8 +42,7 @@ class ConfigurationService(private val configurationRepository: ConfigurationRep
     }
 }
 
-fun zonedDate(date: Date) = date.toInstant().atZone(ZoneId.of("CET"))!!
-fun timeNow() = zonedDate(Date())
-fun formattedTime(zonedDateTime: ZonedDateTime) = "${zonedDateTime.hour}-${zonedDateTime.minute}"
-fun formattedDate(zonedDateTime: ZonedDateTime) = "${zonedDateTime.year}-${zonedDateTime.month}-${zonedDateTime.dayOfMonth}"
+fun timeNow() = LocalDateTime.now()!!
+fun formattedTime(dateTime: LocalDateTime) = "${dateTime.hour}:${dateTime.minute}"
+fun formattedDate(localDate: LocalDate) = SimpleDateFormat(dateFormat()).format(localDate)!!
 fun dateFormat() = "yyyy-mm-dd"

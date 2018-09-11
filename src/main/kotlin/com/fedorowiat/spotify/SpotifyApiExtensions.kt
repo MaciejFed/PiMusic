@@ -23,7 +23,6 @@ fun SpotifyApi.startResumeUsersPlayback(playlistContext: String) {
         sleep(TimeUnit.MINUTES.toMillis(45))
         pause()
     } }.call()))
-
 }
 
 fun SpotifyApi.pause() {

@@ -10,12 +10,13 @@ import java.util.concurrent.TimeUnit
 @Service
 class SleepTimeService(private val wakeRepository: WakeRepository, private val sleepRepository: SleepRepository) {
 
-    fun listSleepTimes(): List<Pair<String, Long>> {
+    fun listSleepTimes(): List<Pair<String, Double>> {
         return sleepRepository
                 .findAll()
+                .sortedBy { it.timestamp }
                 .takeWhile { wakeRepository.findByDate(anotherDay(it.date)) != null }
                 .map { sleep -> Pair(sleep, wakeRepository.findByDate(anotherDay(sleep.date))!!) }
-                .map { sleepWakePair -> Pair(sleepWakePair.first.date, sleepWakePair.first.timestamp.time - sleepWakePair.second.timestamp.time) }
+                .map { sleepWakePair -> Pair(sleepWakePair.first.date, (sleepWakePair.second.timestamp.time - sleepWakePair.first.timestamp.time) / 3600000.0) }
                 .toList()
     }
 
