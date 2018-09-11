@@ -23,7 +23,7 @@ class TaskExecutor(
             )
             is SaveSleepTimeTask -> {
                 val now = timeNow()
-                val dayOfMonth = if (now.hour in 18..23) now.monthValue else now.monthValue - 1
+                val dayOfMonth = if (now.hour in 18..23) now.dayOfMonth else now.dayOfMonth - 1
                 sleepService.saveSleep(
                         date = "${now.year}-${now.monthValue}-$dayOfMonth",
                         time = task.sleepTime
