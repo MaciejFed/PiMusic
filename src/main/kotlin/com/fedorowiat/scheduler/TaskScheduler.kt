@@ -20,32 +20,32 @@ class TaskScheduler(
 
     private var hostFailedPingMap: MutableMap<Machine, Int> = machinesToPingMap()
     private var hostSuccessPingMap: MutableMap<Machine, Int> = machinesToPingMap()
-    private var nightTime = false
+    private var sleepTime = false
     private var finalSleepTime = Date()
 
     @Scheduled(fixedDelay = 2000)
     fun scheduleSleepMusic() {
-        if ((timeNow().hour > afterHour() || timeNow().hour < beforeHour()) && !nightTime) {
+        if (nightWindow() && !sleepTime) {
             machineRepository.findAll().forEach {
                 hostFailedPingMap[it] = if(isReachable(it)) 0 else hostFailedPingMap[it]!! + 1
             }
             if (hostFailedPingMap.keys.all { hostFailedPingMap[it]!! > 5 }) {
-                nightTime = true
+                sleepTime = true
                 hostFailedPingMap = machinesToPingMap()
-                taskExecutor.execute(PlaylistTask(Playlist.SLEEP_SONGS))
                 finalSleepTime = Date()
+                taskExecutor.execute(PlaylistTask(Playlist.SLEEP_SONGS))
             }
         }
     }
 
     @Scheduled(initialDelay = 50, fixedDelay = 2000)
     fun interruptSleepMusic() {
-        if ((timeNow().hour > afterHour() || timeNow().hour < beforeHour()) && nightTime) {
+        if (nightWindow() && sleepTime) {
             machineRepository.findAll().forEach {
                 hostSuccessPingMap[it] = if(isReachable(it)) hostSuccessPingMap[it]!! + 1 else 0
             }
             if (hostSuccessPingMap.keys.any { hostSuccessPingMap[it]!! > 5 }) {
-                nightTime = false
+                sleepTime = false
                 hostSuccessPingMap = machinesToPingMap()
                 taskExecutor.execute(StopTask())
             }
@@ -59,14 +59,27 @@ class TaskScheduler(
 
     @Scheduled(fixedDelay = 60000)
     fun saveWakeTime() {
-        if (timeNow().hour in 5..11) {
-            taskExecutor.execute(SaveWakeTimeTask(Date()))
+        if (morningWindow()) {
+            machineRepository.findAll().forEach {
+                hostSuccessPingMap[it] = if(isReachable(it)) hostSuccessPingMap[it]!! + 1 else 0
+            }
+            if (hostSuccessPingMap.keys.any { hostSuccessPingMap[it]!! > 5 }) {
+                sleepTime = false
+                hostSuccessPingMap = machinesToPingMap()
+                taskExecutor.execute(SaveWakeTimeTask(Date()))
+            }
         }
     }
 
-    private fun machinesToPingMap() = machineRepository.findAll().map { it to 0 }.toMap().toMutableMap()
+
+    private fun nightWindow() = timeNow().hour in afterHour()..24 || timeNow().hour in 0..beforeHour()
+    private fun morningWindow() = timeNow().hour in 5..11
+
     private fun afterHour() = configurationService.getConfiguration().afterHour
     private fun beforeHour() = configurationService.getConfiguration().beforeHour
+
+    private fun machinesToPingMap() = machineRepository.findAll().map { it to 0 }.toMap().toMutableMap()
+
     private fun isReachable(machine: Machine): Boolean {
         return try {
             InetAddress.getByName(machine.ip).isReachable(500)
